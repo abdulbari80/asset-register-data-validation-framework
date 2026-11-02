@@ -1,0 +1,75 @@
+# ------------------------------------------------------------------
+# Pipeline outputs (recreated by: python src/run_pipeline.py --generate)
+# ------------------------------------------------------------------
+data/
+output/
+
+# ------------------------------------------------------------------
+# Secrets and local settings
+# ------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pgpass
+pgpass.conf
+
+# ------------------------------------------------------------------
+# Python
+# ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Virtual environments (conda environments live outside the project by default)
+.venv/
+venv/
+env/
+.conda/
+
+# ------------------------------------------------------------------
+# Apache Airflow (local runs)
+# ------------------------------------------------------------------
+logs/
+airflow.db
+airflow.cfg
+airflow-webserver.pid
+webserver_config.py
+standalone_admin_password.txt
+
+# ------------------------------------------------------------------
+# Editors and IDEs
+# ------------------------------------------------------------------
+.vscode/
+.idea/
+*.code-workspace
+
+# ------------------------------------------------------------------
+# QGIS and Office temporary files
+# ------------------------------------------------------------------
+*.qgs~
+*.qgz~
+*.qgd
+~$*
+
+# ------------------------------------------------------------------
+# Operating system files
+# ------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------------------------------
+# Logs and temporary files
+# ------------------------------------------------------------------
+*.log
+*.tmp
+*.bak
