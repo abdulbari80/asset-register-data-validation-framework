@@ -1,0 +1,60 @@
+# Asset data dictionary used by both the sample-data generator and the validation rules.
+# Values are illustrative for a portfolio project; replace with the council's own
+# asset hierarchy, unit rates and useful lives when you have them.
+crs: 7850                # GDA2020 / MGA zone 50 (Mandurah, WA)
+condition_scale: [1, 2, 3, 4, 5]   # 1 = very good ... 5 = very poor
+criticality_values: [Critical, Primary, Secondary]
+status_values: [Proposed, Constructed, In Service, Disposed]
+
+asset_classes:
+  - network: Transport
+    asset_class: Road
+    subclass: Local Road Seal
+    geometry: LINESTRING
+    unit: m2
+    unit_rate_min: 25
+    unit_rate_max: 60
+    useful_life_min: 15
+    useful_life_max: 30
+    width_min: 5.0
+    width_max: 12.0
+  - network: Transport
+    asset_class: Path
+    subclass: Concrete Footpath
+    geometry: LINESTRING
+    unit: m2
+    unit_rate_min: 70
+    unit_rate_max: 140
+    useful_life_min: 40
+    useful_life_max: 60
+    width_min: 1.2
+    width_max: 3.0
+  - network: Stormwater
+    asset_class: Drainage
+    subclass: Stormwater Pipe
+    geometry: LINESTRING
+    unit: m
+    unit_rate_min: 250
+    unit_rate_max: 900
+    useful_life_min: 80
+    useful_life_max: 100
+    diameter_mm_min: 225
+    diameter_mm_max: 1200
+  - network: Stormwater
+    asset_class: Drainage
+    subclass: Side Entry Pit
+    geometry: POINT
+    unit: each
+    unit_rate_min: 2500
+    unit_rate_max: 6000
+    useful_life_min: 60
+    useful_life_max: 100
+  - network: Lighting
+    asset_class: Street Light
+    subclass: LED Street Light
+    geometry: POINT
+    unit: each
+    unit_rate_min: 3000
+    unit_rate_max: 9000
+    useful_life_min: 20
+    useful_life_max: 40
