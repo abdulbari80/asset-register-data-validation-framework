@@ -1,0 +1,33 @@
+{
+  "name": "Mandurah-inspired Asset Management",
+  "dataColors": [
+    "#2261AE",
+    "#F15D22",
+    "#479CD1",
+    "#74A333",
+    "#63506C",
+    "#FFB020",
+    "#796D6D",
+    "#9DD8D7",
+    "#A0252B",
+    "#BEB0A3"
+  ],
+  "background": "#FFFFFF",
+  "secondaryBackground": "#F8F7F6",
+  "foreground": "#1B385F",
+  "foregroundNeutralSecondary": "#796D6D",
+  "tableAccent": "#2261AE",
+  "good": "#74A333",
+  "neutral": "#FFB020",
+  "bad": "#A0252B",
+  "maximum": "#A0252B",
+  "center": "#FFB020",
+  "minimum": "#74A333",
+  "null": "#BEB0A3",
+  "textClasses": {
+    "callout": { "fontFace": "Segoe UI Semibold", "fontSize": 28, "color": "#1B385F" },
+    "title": { "fontFace": "Segoe UI Semibold", "fontSize": 12, "color": "#1B385F" },
+    "header": { "fontFace": "Segoe UI Semibold", "fontSize": 12, "color": "#1B385F" },
+    "label": { "fontFace": "Segoe UI", "fontSize": 10, "color": "#364153" }
+  }
+}

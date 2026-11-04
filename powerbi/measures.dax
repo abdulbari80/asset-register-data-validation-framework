@@ -1,0 +1,155 @@
+// =====================================================================================
+// Asset Data Handover Dashboard - DAX
+// Source: CSV exports in output/ (seed-42 sample data)
+// Paste in this order: section A (columns), then B-D (measures, in a _Measures table).
+// Each "Name = expression" block is one New column / New measure.
+// =====================================================================================
+
+
+// -------------------------------------------------------------------------------------
+// A. Calculated columns
+// -------------------------------------------------------------------------------------
+
+// On dq_exceptions: plain-English issue type for non-technical viewers
+Issue Type =
+SWITCH (
+    dq_exceptions[category],
+    "Completeness", "Missing information",
+    "Validity", "Invalid values",
+    "Uniqueness", "Duplicate assets",
+    "Spatial", "Location or shape problem",
+    "Consistency", "Inconsistent values",
+    dq_exceptions[category]
+)
+
+// On register_asset: year the renewal is planned (overdue renewals roll into next year)
+Planned Year = MAX ( register_asset[renewal_year], YEAR ( TODAY () ) + 1 )
+
+// On register_asset: overdue vs scheduled, for the renewal outlook chart
+Renewal Type =
+IF ( LEFT ( register_asset[renewal_horizon], 1 ) = "1", "Overdue (backlog)", "Scheduled" )
+
+// On register_asset: readable condition label for visuals (1 = best, 5 = worst).
+// The number prefix keeps the labels in the right order; "Unknown" sorts last.
+Condition Label =
+SWITCH (
+    register_asset[condition],
+    1, "1 Very good",
+    2, "2 Good",
+    3, "3 Fair",
+    4, "4 Poor",
+    5, "5 Very poor",
+    "Unknown"
+)
+
+// On register_asset: risk band for map colours and filters (High = risk_score >= 10)
+Risk Band =
+SWITCH ( TRUE (),
+    ISBLANK ( register_asset[risk_score] ), "Unknown",
+    register_asset[risk_score] >= 10, "High",
+    register_asset[risk_score] >= 5, "Medium",
+    "Low"
+)
+
+// On register_asset: sort order for Risk Band (most severe first).
+// Then: select Risk Band > Column tools > Sort by column > Risk Band Order,
+// and hide this column from report view.
+Risk Band Order =
+SWITCH (
+    register_asset[Risk Band],
+    "High", 1,
+    "Medium", 2,
+    "Low", 3,
+    4    // Unknown
+)
+
+
+// -------------------------------------------------------------------------------------
+// B. Page 1 - Handover Check
+// -------------------------------------------------------------------------------------
+
+Rows Checked = SUM ( dq_runs[rows_checked] )
+
+Rows Integrated = SUM ( dq_runs[rows_accepted] )
+
+Rows Held for Review = SUM ( dq_runs[rows_review] )
+
+Rows Returned = SUM ( dq_runs[rows_returned] )
+
+First-Pass Acceptance % = DIVIDE ( [Rows Integrated], [Rows Checked] )
+
+// Number of validation rules in sql/03_validation_rules.sql (R01-R23)
+Rules Applied = 23
+
+// Every row tested against every rule
+Checks Performed = [Rows Checked] * [Rules Applied]
+
+Submission Rows = COUNTROWS ( submission_outcome )
+
+Issues Found = COUNTROWS ( dq_exceptions )
+
+Rows With Issues = DISTINCTCOUNT ( dq_exceptions[submission_row] )
+
+// Issues with no usable location (cannot be shown on the map)
+Issues Not Mappable = CALCULATE ( [Issues Found], ISBLANK ( dq_exceptions[latitude] ) )
+
+// Rule assurance: planted test errors that the rules caught
+Planted Errors = COUNTROWS ( rule_evaluation )
+
+Planted Errors Caught =
+CALCULATE ( COUNTROWS ( rule_evaluation ), rule_evaluation[detected] = TRUE () )
+
+Assurance Label =
+FORMAT ( [Planted Errors Caught], "0" ) & " of " & FORMAT ( [Planted Errors], "0" )
+    & " planted test errors caught"
+
+
+// -------------------------------------------------------------------------------------
+// C. Page 2 - Register Health
+// -------------------------------------------------------------------------------------
+
+Asset Count = COUNTROWS ( register_asset )
+
+Replacement Cost = SUM ( register_asset[replacement_value] )
+
+Value Added This Handover =
+CALCULATE ( [Replacement Cost], register_asset[from_latest_submission] = "Yes" )
+
+Assets Added This Handover =
+CALCULATE ( [Asset Count], register_asset[from_latest_submission] = "Yes" )
+
+Condition Coverage % = DIVIDE ( COUNT ( register_asset[condition] ), [Asset Count] )
+
+Assets Missing Condition =
+CALCULATE ( [Asset Count], ISBLANK ( register_asset[condition] ) )
+
+// Average of material, condition and criticality completeness across subclasses
+Overall Completeness % =
+AVERAGEX (
+    register_completeness,
+    ( register_completeness[material_pct]
+        + register_completeness[condition_pct]
+        + register_completeness[criticality_pct] ) / 3
+) / 100
+
+
+// -------------------------------------------------------------------------------------
+// D. Page 3 - Planning Insights
+// -------------------------------------------------------------------------------------
+
+High Risk Assets = CALCULATE ( [Asset Count], register_asset[Risk Band] = "High" )
+
+High Risk Value = CALCULATE ( [Replacement Cost], register_asset[Risk Band] = "High" )
+
+Renewal Backlog =
+CALCULATE ( [Replacement Cost], register_asset[Renewal Type] = "Overdue (backlog)" )
+
+Backlog Assets =
+CALCULATE ( [Asset Count], register_asset[Renewal Type] = "Overdue (backlog)" )
+
+// Value of renewals due over the next 10 years, including the overdue backlog
+Renewals Next 10 Years =
+CALCULATE (
+    [Replacement Cost],
+    register_asset[Planned Year] <= YEAR ( TODAY () ) + 10
+)
