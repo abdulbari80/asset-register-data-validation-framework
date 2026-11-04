@@ -100,6 +100,41 @@ SELECT (extract(year FROM install_date) + useful_life)::int AS renewal_year,
 FROM am.asset_register
 GROUP BY 1, 2, 3;
 
+-- One row per register asset: age, remaining life, straight-line depreciation, a simple
+-- risk score and a WGS84 point for map visuals. Feeds the asset consumption ratio,
+-- the risk matrix and the prioritised renewal list in Power BI.
+CREATE OR REPLACE VIEW am.v_register_asset AS
+WITH a AS (
+  SELECT r.*,
+         (current_date - r.install_date) / 365.25 AS age_exact,
+         ST_Transform(ST_PointOnSurface(r.geom), 4326) AS pt
+  FROM am.asset_register r
+)
+SELECT asset_id, network, asset_class, subclass, criticality, condition, status, material,
+       quantity, unit, unit_rate, replacement_value, useful_life, install_date,
+       (extract(year FROM install_date) + useful_life)::int AS renewal_year,
+       floor(age_exact)::int AS age_years,
+       round((useful_life - age_exact)::numeric, 1) AS remaining_life_years,
+       -- straight-line depreciated replacement cost (fair value); zero once fully consumed
+       round(replacement_value * greatest(0, 1 - age_exact / useful_life)::numeric, 2) AS depreciated_value,
+       -- annual depreciation expense; fully depreciated assets no longer depreciate
+       round(CASE WHEN age_exact < useful_life THEN replacement_value / useful_life ELSE 0 END, 2)
+         AS annual_depreciation,
+       CASE WHEN age_exact >= useful_life     THEN '1 Backlog (past useful life)'
+            WHEN useful_life - age_exact <= 5  THEN '2 Due within 5 years'
+            WHEN useful_life - age_exact <= 10 THEN '3 Due in 6-10 years'
+            ELSE '4 Due after 10 years' END AS renewal_horizon,
+       -- consequence of failure from criticality (3 = Critical .. 1 = Secondary)
+       CASE criticality WHEN 'Critical' THEN 3 WHEN 'Primary' THEN 2 WHEN 'Secondary' THEN 1 END
+         AS consequence_score,
+       -- risk = condition (likelihood, 1-5) x consequence (1-3); NULL when either is unknown
+       condition * CASE criticality WHEN 'Critical' THEN 3 WHEN 'Primary' THEN 2 WHEN 'Secondary' THEN 1 END
+         AS risk_score,
+       CASE WHEN integrated_run_id IS NOT NULL THEN 'Yes' ELSE 'No' END AS from_latest_submission,
+       ST_Y(pt) AS latitude,
+       ST_X(pt) AS longitude
+FROM a;
+
 -- Exports for Power BI -------------------------------------------------------------------
 \copy (SELECT * FROM am.v_dq_exception_detail ORDER BY run_id, submission_row, rule_id) TO 'dq_exceptions.csv' WITH (FORMAT csv, HEADER true)
 \copy (SELECT * FROM am.v_submission_outcome ORDER BY submission_row) TO 'submission_outcome.csv' WITH (FORMAT csv, HEADER true)
@@ -107,5 +142,6 @@ GROUP BY 1, 2, 3;
 \copy (SELECT * FROM am.v_register_completeness ORDER BY subclass) TO 'register_completeness.csv' WITH (FORMAT csv, HEADER true)
 \copy (SELECT * FROM am.v_register_summary) TO 'register_summary.csv' WITH (FORMAT csv, HEADER true)
 \copy (SELECT * FROM am.v_renewal_forecast ORDER BY renewal_year, network, subclass) TO 'renewal_forecast.csv' WITH (FORMAT csv, HEADER true)
+\copy (SELECT * FROM am.v_register_asset ORDER BY asset_id) TO 'register_asset.csv' WITH (FORMAT csv, HEADER true)
 
 SELECT * FROM am.dq_run WHERE run_id = :run_id;
